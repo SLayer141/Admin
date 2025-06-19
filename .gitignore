@@ -1,0 +1,16 @@
+# Frontend
+/Client/node_modules
+/Client/.env
+/Client/build
+/Client/dist
+
+# Backend
+/Server/node_modules
+/Server/.env
+/Server/dist
+
+# Root env (if applicable)
+.env
+
+# System
+.DS_Store
