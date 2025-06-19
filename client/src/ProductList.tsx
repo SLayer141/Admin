@@ -9,30 +9,29 @@ interface Product {
   images: string[];
 }
 
-const mockProducts: Product[] = [
-  {
-    id: 1,
-    sku: 'SKU001',
-    name: 'Product 1',
-    price: 100,
-    images: ['https://via.placeholder.com/50'],
-  },
-  {
-    id: 2,
-    sku: 'SKU002',
-    name: 'Product 2',
-    price: 200,
-    images: ['https://via.placeholder.com/50', 'https://via.placeholder.com/50/0000FF'],
-  },
-];
-
 const ProductList: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  const fetchProducts = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/products');
+      if (!res.ok) throw new Error('Failed to fetch products');
+      const data = await res.json();
+      setProducts(data);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    // Replace with API call
-    setProducts(mockProducts);
+    fetchProducts();
   }, []);
 
   const handleAdd = () => {
@@ -43,9 +42,15 @@ const ProductList: React.FC = () => {
     navigate(`/form/${id}`);
   };
 
-  const handleDelete = (id: number) => {
-    // Replace with API call
-    setProducts(products.filter(p => p.id !== id));
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    try {
+      const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete product');
+      setProducts(products.filter(p => p.id !== id));
+    } catch (err) {
+      alert((err as Error).message);
+    }
   };
 
   return (
@@ -53,37 +58,43 @@ const ProductList: React.FC = () => {
       <h2>Product List</h2>
       <button onClick={handleAdd} className="add-product-btn">Add Product</button>
       <div className="table-wrapper">
-        <table className="product-table">
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>Name</th>
-              <th>Price</th>
-              <th>Images</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map(product => (
-              <tr key={product.id}>
-                <td>{product.sku}</td>
-                <td>{product.name}</td>
-                <td>${product.price}</td>
-                <td>
-                  <div className="image-thumbnails">
-                    {product.images.map((img, idx) => (
-                      <img key={idx} src={img} alt={product.name} className="product-thumbnail" />
-                    ))}
-                  </div>
-                </td>
-                <td>
-                  <button onClick={() => handleEdit(product.id)} className="edit-btn">Edit</button>
-                  <button onClick={() => handleDelete(product.id)} className="delete-btn">Delete</button>
-                </td>
+        {loading ? (
+          <p>Loading...</p>
+        ) : error ? (
+          <p style={{ color: 'red' }}>{error}</p>
+        ) : (
+          <table className="product-table">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>Images</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {products.map(product => (
+                <tr key={product.id}>
+                  <td>{product.sku}</td>
+                  <td>{product.name}</td>
+                  <td>${product.price}</td>
+                  <td>
+                    <div className="image-thumbnails">
+                      {product.images.map((img, idx) => (
+                        <img key={idx} src={img} alt={product.name} className="product-thumbnail" />
+                      ))}
+                    </div>
+                  </td>
+                  <td>
+                    <button onClick={() => handleEdit(product.id)} className="edit-btn">Edit</button>
+                    <button onClick={() => handleDelete(product.id)} className="delete-btn">Delete</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import { Product } from '../model/Product';
 
 const productRepo = AppDataSource.getRepository(Product);
 
-export const getAllProducts = async (req: Request, res: Response) => {
+export const getAllProducts = async (req: Request, res: Response): Promise<void> => {
   try {
     const products = await productRepo.find();
     res.json(products);
@@ -13,17 +13,17 @@ export const getAllProducts = async (req: Request, res: Response) => {
   }
 };
 
-export const getProductById = async (req: Request, res: Response) => {
+export const getProductById = async (req: Request, res: Response): Promise<void> => {
   try {
     const product = await productRepo.findOneBy({ id: Number(req.params.id) });
-    if (!product) return res.status(404).json({ error: 'Product not found' });
+    if (!product) return void res.status(404).json({ error: 'Product not found' });
     res.json(product);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch product' });
   }
 };
 
-export const createProduct = async (req: Request, res: Response) => {
+export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { sku, name, price, images } = req.body;
     const product = productRepo.create({ sku, name, price, images });
@@ -34,11 +34,11 @@ export const createProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const updateProduct = async (req: Request, res: Response) => {
+export const updateProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const { sku, name, price, images } = req.body;
     const product = await productRepo.findOneBy({ id: Number(req.params.id) });
-    if (!product) return res.status(404).json({ error: 'Product not found' });
+    if (!product) return void res.status(404).json({ error: 'Product not found' });
     product.sku = sku;
     product.name = name;
     product.price = price;
@@ -50,10 +50,10 @@ export const updateProduct = async (req: Request, res: Response) => {
   }
 };
 
-export const deleteProduct = async (req: Request, res: Response) => {
+export const deleteProduct = async (req: Request, res: Response): Promise<void> => {
   try {
     const product = await productRepo.findOneBy({ id: Number(req.params.id) });
-    if (!product) return res.status(404).json({ error: 'Product not found' });
+    if (!product) return void res.status(404).json({ error: 'Product not found' });
     await productRepo.remove(product);
     res.json({ message: 'Product deleted' });
   } catch (err) {

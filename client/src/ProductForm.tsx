@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 interface ProductFormValues {
   sku: string;
@@ -25,7 +25,32 @@ const ProductForm: React.FC = () => {
   });
   const [errors, setErrors] = useState<ProductFormErrors>({});
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+
+  useEffect(() => {
+    if (id) {
+      setLoading(true);
+      fetch(`/api/products/${id}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch product');
+          return res.json();
+        })
+        .then(data => {
+          setForm({
+            sku: data.sku,
+            name: data.name,
+            price: String(data.price),
+            images: [], // Images will be handled as URLs for preview
+          });
+          setImagePreviews(data.images || []);
+        })
+        .catch(err => setApiError((err as Error).message))
+        .finally(() => setLoading(false));
+    }
+  }, [id]);
 
   const validate = (): ProductFormErrors => {
     const newErrors: ProductFormErrors = {};
@@ -33,7 +58,7 @@ const ProductForm: React.FC = () => {
     if (!form.name) newErrors.name = 'Name is required';
     if (!form.price) newErrors.price = 'Price is required';
     else if (isNaN(Number(form.price)) || Number(form.price) <= 0) newErrors.price = 'Price must be a positive number';
-    if (form.images.length === 0) newErrors.images = 'At least one image is required';
+    if (!id && form.images.length === 0) newErrors.images = 'At least one image is required';
     return newErrors;
   };
 
@@ -50,21 +75,50 @@ const ProductForm: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    setApiError(null);
     const validationErrors = validate();
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length === 0) {
-      alert('Product submitted!');
-      console.log('Product:', form);
-      navigate('/products', { replace: true });
+      setLoading(true);
+      try {
+        // For now, just send image URLs as strings (no upload)
+        const payload = {
+          sku: form.sku,
+          name: form.name,
+          price: Number(form.price),
+          images: imagePreviews, // In real app, handle file upload
+        };
+        let res;
+        if (id) {
+          res = await fetch(`/api/products/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        } else {
+          res = await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+        }
+        if (!res.ok) throw new Error('Failed to save product');
+        navigate('/products', { replace: true });
+      } catch (err) {
+        setApiError((err as Error).message);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
   return (
     <div className="product-form-container">
       <form className="product-form" onSubmit={handleSubmit}>
-        <h2>Add / Edit Product</h2>
+        <h2>{id ? 'Edit' : 'Add'} Product</h2>
+        {apiError && <p style={{ color: 'red' }}>{apiError}</p>}
         <div className="form-group">
           <label htmlFor="sku">SKU</label>
           <input
@@ -75,6 +129,7 @@ const ProductForm: React.FC = () => {
             onChange={handleChange}
             className={errors.sku ? 'error' : ''}
             autoComplete="off"
+            disabled={loading}
           />
           {errors.sku && <span className="error-message">{errors.sku}</span>}
         </div>
@@ -88,6 +143,7 @@ const ProductForm: React.FC = () => {
             onChange={handleChange}
             className={errors.name ? 'error' : ''}
             autoComplete="off"
+            disabled={loading}
           />
           {errors.name && <span className="error-message">{errors.name}</span>}
         </div>
@@ -103,6 +159,7 @@ const ProductForm: React.FC = () => {
             min="0"
             step="0.01"
             autoComplete="off"
+            disabled={loading}
           />
           {errors.price && <span className="error-message">{errors.price}</span>}
         </div>
@@ -116,6 +173,7 @@ const ProductForm: React.FC = () => {
             accept="image/*"
             onChange={handleImageChange}
             className={errors.images ? 'error' : ''}
+            disabled={loading}
           />
           {errors.images && <span className="error-message">{errors.images}</span>}
           <div className="image-previews">
@@ -124,7 +182,7 @@ const ProductForm: React.FC = () => {
             ))}
           </div>
         </div>
-        <button type="submit" className="submit-btn">Submit</button>
+        <button type="submit" className="submit-btn" disabled={loading}>{loading ? 'Saving...' : 'Submit'}</button>
       </form>
     </div>
   );
