@@ -1,11 +1,14 @@
 import express, { Request, Response } from 'express';
 import { AppDataSource } from './db/data-source';
 import productRoutes from './routes/productRoutes';
+import userRoutes from './routes/userRoutes';
 
 const port = process.env.PORT || 3000;
 const app = express();
 
 app.use(express.json());
+
+app.use(userRoutes);
 
 app.use('/api/products', productRoutes);
 

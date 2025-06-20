@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
 import { Product } from '../model/Product';
+import { User } from '../model/User';
 import 'dotenv/config';
 
 const DB_HOST = process.env.DB_HOST || 'localhost';
@@ -18,5 +19,5 @@ export const AppDataSource = new DataSource({
   database: DB_DATABASE,
   synchronize: true, // Set to false in production
   logging: false,
-  entities: [Product],
+  entities: [Product, User],
 }); 

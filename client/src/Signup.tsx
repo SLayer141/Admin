@@ -1,59 +1,56 @@
-// If you see errors about 'react-router-dom', run:
-// npm install react-router-dom@6 @types/react-router-dom
 import React, { useState } from 'react';
-import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext';
-import './Login.css';
 
-const ADMIN_USERNAME = import.meta.env.VITE_ADMIN_USERNAME;
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
-
-interface LoginForm {
+interface SignupForm {
   username: string;
   password: string;
 }
 
-interface LoginErrors {
+interface SignupErrors {
   username?: string;
   password?: string;
   general?: string;
 }
 
-const Login: React.FC = () => {
-  const [form, setForm] = useState<LoginForm>({ username: '', password: '' });
-  const [errors, setErrors] = useState<LoginErrors>({});
+const Signup: React.FC = () => {
+  const [form, setForm] = useState<SignupForm>({ username: '', password: '' });
+  const [errors, setErrors] = useState<SignupErrors>({});
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
 
-  const validate = (): LoginErrors => {
-    const newErrors: LoginErrors = {};
-    if (!form.username) {
-      newErrors.username = 'Username is required';
-    }
-    if (!form.password) {
-      newErrors.password = 'Password is required';
-    }
+  const validate = (): SignupErrors => {
+    const newErrors: SignupErrors = {};
+    if (!form.username) newErrors.username = 'Username is required';
+    if (!form.password) newErrors.password = 'Password is required';
     return newErrors;
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const validationErrors = validate();
     setErrors(validationErrors);
     if (Object.keys(validationErrors).length === 0) {
-      if (
-        form.username === ADMIN_USERNAME &&
-        form.password === ADMIN_PASSWORD
-      ) {
-        login();
-        navigate('/products', { replace: true });
-      } else {
-        setErrors({ general: 'Invalid username or password' });
+      setLoading(true);
+      try {
+        const res = await fetch('/api/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        });
+        if (res.ok) {
+          navigate('/login');
+        } else {
+          const data = await res.json();
+          setErrors({ general: data.message || 'Signup failed' });
+        }
+      } catch (err) {
+        setErrors({ general: 'Network error' });
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -61,7 +58,7 @@ const Login: React.FC = () => {
   return (
     <div className="login-container">
       <form className="login-form" onSubmit={handleSubmit}>
-        <h2>Login</h2>
+        <h2>Sign Up</h2>
         <div className="form-group">
           <label htmlFor="username">Username</label>
           <input
@@ -87,15 +84,14 @@ const Login: React.FC = () => {
           {errors.password && <span className="error-message">{errors.password}</span>}
         </div>
         {errors.general && <span className="error-message">{errors.general}</span>}
-        <button type="submit">Login</button>
+        <button type="submit" disabled={loading}>{loading ? 'Signing up...' : 'Sign Up'}</button>
         <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-        <span>Don't have an account? </span>
-        <a href="/signup">Sign up</a>
+        <span>Already have an account? </span>
+        <a href="/login">Login</a>
       </div>
       </form>
-      
     </div>
   );
 };
 
-export default Login; 
+export default Signup; 

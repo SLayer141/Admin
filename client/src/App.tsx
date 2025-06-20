@@ -4,6 +4,7 @@ import Login from './Login';
 import ProductForm from './ProductForm';
 import { AuthProvider, useAuth } from './AuthContext';
 import ProductList from './ProductList';
+import Signup from './Signup';
 import './App.css';
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
@@ -16,6 +17,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
       <Route path="/form" element={<PrivateRoute><ProductForm /></PrivateRoute>} />
       <Route path="/form/:id" element={<PrivateRoute><ProductForm /></PrivateRoute>} />
       <Route path="/products" element={<PrivateRoute><ProductList /></PrivateRoute>} />
